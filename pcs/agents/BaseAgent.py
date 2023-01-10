@@ -6,7 +6,7 @@ import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
 import torch.nn as nn
-from pcs.utils import print_info, torchutils
+from utils import print_info, torchutils
 from torch.utils.tensorboard import SummaryWriter
 
 

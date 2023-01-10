@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from pcs.utils.torchutils import grad_reverse
+from utils.torchutils import grad_reverse
 from torch.autograd import Function
 from torchvision import models
 

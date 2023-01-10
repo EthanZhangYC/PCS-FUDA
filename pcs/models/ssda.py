@@ -6,8 +6,8 @@ import torch.cuda.comm
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
-from pcs.utils import reverse_domain, torchutils
-
+from utils import reverse_domain, torchutils
+import pdb
 
 class SSDALossModule(torch.nn.Module):
     def __init__(self, config, gpu_devices):
@@ -137,12 +137,17 @@ class SSDALossModule(torch.nn.Module):
             centroids = cluster_centroids[each_k_idx]
             phi = t
 
-            p = torchutils.contrastive_sim(outputs, centroids, tao=phi)
+            bs,dim,w,h = outputs.shape
+            reshape_outputs = outputs.permute(0,2,3,1).reshape(-1,dim)
+            p = torchutils.contrastive_sim(reshape_outputs, centroids, tao=phi)
+            
+            # p = torchutils.contrastive_sim(outputs, centroids, tao=phi)
             z = torch.sum(p, dim=-1)  # [bs]
             p = p / z.unsqueeze(1)  # [bs, k]
 
-            cur_loss = -torch.sum(p * torch.log(p)) / self.batch_size
-
+            # cur_loss = -torch.sum(p * torch.log(p)) / self.batch_size
+            cur_loss = -torch.sum(p * torch.log(p)) / p.size(0)
+            
             loss = loss + cur_loss
 
         loss /= n_kmeans
@@ -169,39 +174,50 @@ class SSDALossModule(torch.nn.Module):
         c_domain = domain
 
         cluster_labels = self.get_attr(domain, f"cluster_labels_{clus}")
-        cluster_centroids = self.get_attr(c_domain, f"cluster_centroids_{clus}")
+        cluster_centroids = self.get_attr(c_domain, f"cluster_centroids_{clus}") # len=30
         cluster_phi = self.get_attr(c_domain, f"cluster_phi_{clus}")
 
         for each_k_idx, k in enumerate(k_list):
             # clus info
             labels = cluster_labels[each_k_idx]
-            centroids = cluster_centroids[each_k_idx]
-            phis = cluster_phi[each_k_idx]
+            centroids = cluster_centroids[each_k_idx] # [31, out-dim]
+            phis = cluster_phi[each_k_idx] # [31]
 
             # batch info
             batch_labels = labels[self.indices]
-            outputs = self.outputs
-            batch_centroids = centroids[batch_labels]
+            outputs = self.outputs # [bs, out-dim, img-size, img-size]
+            bs,dim,w,h=outputs.shape
+            batch_centroids = centroids[batch_labels]   # [bs, out-dim]
             if loss_type == "fix":
                 batch_phis = t
             else:
-                batch_phis = phis[batch_labels]
+                batch_phis = phis[batch_labels] # [bs]
 
             # calculate similarity
-            dot_exp = torch.exp(
-                torch.sum(outputs * batch_centroids, dim=-1) / batch_phis
-            )
-
+            
+            # dot_exp = torch.exp(
+            #     torch.sum(outputs * batch_centroids, dim=-1) / batch_phis
+            # )
+            reshape_outputs = outputs.permute(0,2,3,1).reshape(-1,dim) #[2048,out-dim]
+            reshape_batch_centroids = batch_centroids.view(-1,1,1,dim).repeat(1,w,h,1).reshape(-1,dim)
+            # torch.exp(torch.sum(outputs.permute(0,2,3,1).reshape(-1,dim) * batch_centroids.view(-1,1,1,dim).repeat(1,w,h,1).reshape(-1,dim), dim=-1).reshape(-1,w*h) / batch_phis.view(-1,1))
+            dot_exp = torch.exp(torch.sum(reshape_outputs * reshape_batch_centroids, dim=-1).reshape(-1,w*h) / batch_phis.view(-1,1))
+            
             assert not torch.isnan(outputs).any()
             assert not torch.isnan(batch_centroids).any()
             assert not torch.isnan(dot_exp).any()
 
             # calculate Z
-            all_phi = t if is_fix else phis.unsqueeze(0).repeat(outputs.shape[0], 1)
-            z = torchutils.contrastive_sim_z(outputs, centroids, tao=all_phi)
+            # all_phi = t if is_fix else phis.unsqueeze(0).repeat(outputs.shape[0], 1) # [bs,31]
+            # z = torchutils.contrastive_sim_z(outputs, centroids, tao=all_phi)
+            # torch.sum(reshape_outputs.unsqueeze(1).repeat(1,centroids.size(0),1) * centroids, dim=-1) # [2048,31]
+            # torch.exp(torch.sum(reshape_outputs.unsqueeze(1).repeat(1,centroids.size(0),1) * centroids, dim=-1) / phis).shape
+
+            z = torchutils.contrastive_sim_z(reshape_outputs, centroids, tao=phis)#.reshape(-1,w*h)
 
             # calculate loss
-            p = dot_exp / z
+            # p = dot_exp / z
+            p = dot_exp.reshape(-1) / z
 
             loss = loss - torch.sum(torch.log(p)) / p.size(0)
 

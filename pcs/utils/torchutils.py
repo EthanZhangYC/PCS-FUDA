@@ -50,7 +50,7 @@ def contrastive_sim(instances, proto=None, tao=0.05):
     # proto_dim [nums, dim]
     if proto is None:
         proto = instances
-    ins_ext = instances.unsqueeze(1).repeat(1, proto.size(0), 1)
+    ins_ext = instances.unsqueeze(1).repeat(1, proto.size(0), 1) #[bs,clus nums,dim]
     sim_matrix = torch.exp(dot(ins_ext, proto) / tao)
     return sim_matrix
 

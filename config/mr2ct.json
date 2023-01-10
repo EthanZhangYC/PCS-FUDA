@@ -1,0 +1,63 @@
+{
+  "seed": 1337,
+  "exp_base": "./exps",
+  "exp_name": "mr2ct",
+  "exp_id": "amazon->dslr",
+  "agent": "CDSAgentMed",
+  "data_params": {
+    "name": "office",
+    "source": "mr",
+    "target": "ct",
+    "fewshot": "1",
+    "aug": "aug_0",
+    "data_path_train_source_lbd": "/home/yichen/ProtoUDA/data_mmwhs/mr/mr_labeled/datalist/org_4labeled.txt",
+    "data_path_train_source_unl": "/home/yichen/ProtoUDA/data_mmwhs/mr/mr_like/org_mr",
+    "data_path_train_target_unl": "/home/yichen/ProtoUDA/data_mmwhs/mr/mr_like/org_mr",
+    "data_path_val_source_unl": "/home/yichen/ProtoUDA/data_mmwhs/mr/mr_like_test/org_mr",
+    "data_path_test_source_unl": "/home/yichen/ProtoUDA/data_mmwhs/mr/mr_like_test/org_mr",
+    "data_path_val_target_unl": "/home/yichen/ProtoUDA/data_mmwhs/ct/ct_like_test/org_ct",
+    "data_path_test_target_unl": "/home/yichen/ProtoUDA/data_mmwhs/ct/ct_like_test/org_ct",
+    "img_size": 32
+  },
+  "num_epochs": 500,
+  "steps_epoch": null,
+  "optim_params": {
+    "learning_rate": 0.01,
+    "conv_lr_ratio": 0.1,
+    "patience": 4,
+    "batch_size_lbd": 2,
+    "batch_size": 2,
+    "decay": true,
+    "weight_decay": 5e-4,
+    "cls_update": true
+  },
+  "model_params": {
+    "out_dim": 3,
+    "version": "pretrain-resnet50",
+    "arch": "OUNet",
+    "load_weight": "src-tgt",
+    "load_weight_thres": 20,
+    "load_weight_epoch": 2
+  },
+  "loss_params": {
+    "thres_src": 0.98,
+    "thres_tgt": 0.98,
+    "temp": 0.1,
+    "loss": [
+      "cls-dice",
+      "proto-each",
+      "I2C-cross",
+      "semi-condentmax",
+      "semi-entmin",
+      "tgt-condentmax",
+      "tgt-entmin"
+    ],
+    "weight": [1, 1, 1, 0.5, 0.05, 0.5, 0.05],
+    "clus": {
+      "kmeans_freq": 1,
+      "type": ["each"],
+      "n_k": 15,
+      "k": [31, 62]
+    }
+  }
+}

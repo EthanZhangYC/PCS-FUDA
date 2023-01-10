@@ -55,7 +55,7 @@ def describe_image_list(image_list, save_graph=False, label_name=True, is_sort=F
 def get_fewshot_index(lbd_dataset, whl_dataset):
     lbd_imgs = lbd_dataset.imgs
     whl_imgs = whl_dataset.imgs
-    fewshot_indices = [whl_imgs.index(path) for path in lbd_imgs]
+    fewshot_indices = [whl_imgs.index(path.replace('_labeled','_like')) for path in lbd_imgs]
     fewshot_labels = lbd_dataset.labels
     return fewshot_indices, fewshot_labels
 

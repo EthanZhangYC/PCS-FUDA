@@ -3,8 +3,11 @@
 import argparse
 import os
 
-from pcs.agents import *
-from pcs.utils import check_pretrain_dir, load_json, process_config, set_default
+
+print(os.getcwd())
+
+from agents import *
+from utils import check_pretrain_dir, load_json, process_config, set_default
 
 
 def adjust_config(config):
